@@ -28,16 +28,31 @@ type CtorMsg struct{
 }
 
 func postChaincode (c *gin.Context) {
-  var json Chaincode
-  if c.BindJSON(&json) == nil {
+  var chain Chaincode
+  if c.BindJSON(&chain) != nil {
+    c.JSON(401, gin.H{"status": "unauthorized"})
+    return
   }
-  c.JSON(200, gin.H{
-  })
+
+  switch chain.Method {
+    case "invoke": {
+    }
+    case "query": {
+    }
+    case "deploy": {
+    }
+    default: {
+      c.JSON(401, gin.H{"status": "unauthorized"})
+      return
+    }
+  }
+
+  c.JSON(200, gin.H{"status": "OK"})
 }
 
 func main() {
-  router := gin.Default()
+  r := gin.Default()
 
-  router.POST("/chaincode", postChaincode)
-  router.Run(":7050")
+  r.POST("/chaincode", postChaincode)
+  r.Run(":7050")
 }
