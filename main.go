@@ -27,6 +27,10 @@ type CtorMsg struct{
   Args []string `json:"args"`
 }
 
+func chaincodeQuery(chainc Chaincode) bool {
+  return true
+}
+
 func postChaincode (c *gin.Context) {
   var chain Chaincode
   if c.BindJSON(&chain) != nil {
@@ -34,10 +38,13 @@ func postChaincode (c *gin.Context) {
     return
   }
 
+  var status bool
+
   switch chain.Method {
     case "invoke": {
     }
     case "query": {
+      status = chaincodeQuery(chain)
     }
     case "deploy": {
     }
@@ -47,7 +54,11 @@ func postChaincode (c *gin.Context) {
     }
   }
 
-  c.JSON(200, gin.H{"status": "OK"})
+  if status {
+    c.JSON(200, gin.H{"status": "OK"})
+  } else {
+    c.JSON(401, gin.H{"status": "unauthorized"})
+  }
 }
 
 func main() {
