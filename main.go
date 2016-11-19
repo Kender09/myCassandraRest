@@ -2,6 +2,7 @@ package main
 
 import(
   "github.com/gin-gonic/gin"
+  "github.com/gocql/gocql"
 )
 
 
@@ -26,6 +27,8 @@ type ChaincodeID struct{
 type CtorMsg struct{
   Args []string `json:"args"`
 }
+
+type cqlConfig gocql.ClusterConfig
 
 func chaincodeQuery(chainc Chaincode) bool {
   return true
@@ -62,6 +65,10 @@ func postChaincode (c *gin.Context) {
 }
 
 func main() {
+  cqlConfig := gocql.NewCluster("127.0.0.1")
+  cqlConfig.Keyspace = "fabric"
+  cqlConfig.Consistency = gocql.Quorum
+  cqlConfig.Port = 9042
   r := gin.Default()
 
   r.POST("/chaincode", postChaincode)
