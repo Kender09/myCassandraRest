@@ -3,6 +3,7 @@ package main
 import(
   "github.com/gin-gonic/gin"
   "github.com/gocql/gocql"
+  "fmt"
 )
 
 
@@ -28,9 +29,32 @@ type CtorMsg struct{
   Args []string `json:"args"`
 }
 
-type cqlConfig gocql.ClusterConfig
+var CqlConfig *gocql.ClusterConfig
 
-func chaincodeQuery(chainc Chaincode) bool {
+func chaincodeInvoke(chain Chaincode) bool {
+  session, _ := CqlConfig.CreateSession()
+  defer session.Close()
+  if len(chain.Params.CtorMsg.Args) != 4 {
+    return false
+  }
+
+  from_campany := chain.Params.CtorMsg.Args[1]
+  to_campany := chain.Params.CtorMsg.Args[2]
+  money := chain.Params.CtorMsg.Args[3]
+
+  from_query := "UPDATE assets SET money = money - ? WHERE campany = ?"
+  to_query := "UPDATE assets SET money = money + ? WHERE campany = ?"
+
+  if err := session.Query(from_query, money, from_campany).Exec(); err != nil {
+    fmt.Println(err)
+    return false
+  }
+
+  if err := session.Query(to_query, money, to_campany).Exec(); err != nil {
+    fmt.Println(err)
+    return false
+  }
+
   return true
 }
 
@@ -45,9 +69,9 @@ func postChaincode (c *gin.Context) {
 
   switch chain.Method {
     case "invoke": {
+      status = chaincodeInvoke(chain)
     }
     case "query": {
-      status = chaincodeQuery(chain)
     }
     case "deploy": {
     }
@@ -65,10 +89,10 @@ func postChaincode (c *gin.Context) {
 }
 
 func main() {
-  cqlConfig := gocql.NewCluster("127.0.0.1")
-  cqlConfig.Keyspace = "fabric"
-  cqlConfig.Consistency = gocql.Quorum
-  cqlConfig.Port = 9042
+  CqlConfig = gocql.NewCluster("127.0.0.1")
+  CqlConfig.Keyspace = "fabric"
+  CqlConfig.Consistency = gocql.Quorum
+  CqlConfig.Port = 9042
   r := gin.Default()
 
   r.POST("/chaincode", postChaincode)
