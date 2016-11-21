@@ -4,6 +4,9 @@ import(
   "github.com/gin-gonic/gin"
   "github.com/gocql/gocql"
   "fmt"
+  "strings"
+  "net/http"
+  "io/ioutil"
 )
 
 
@@ -30,6 +33,18 @@ type CtorMsg struct{
 }
 
 var CqlConfig *gocql.ClusterConfig
+var CAip = "localhost"
+
+func checkCA (secureContext string) bool {
+  resp, err := http.Get("http://" + CAip + ":7052/ca/" + secureContext)
+  if err != nil {
+    fmt.Println(err)
+    return false
+  }
+  defer resp.Body.Close()
+  body, _ := ioutil.ReadAll(resp.Body)
+  return strings.Contains(string(body), "OK")
+}
 
 func chaincodeDeploy(c *gin.Context, chain Chaincode) {
   session, _ := CqlConfig.CreateSession()
@@ -103,6 +118,12 @@ func chaincodeQuery(c *gin.Context, chain Chaincode) {
 func postChaincode (c *gin.Context) {
   var chain Chaincode
   if c.BindJSON(&chain) != nil {
+    c.JSON(401, gin.H{"status": "different format"})
+    return
+  }
+
+  fmt.Println(chain.Params.SecureContext)
+  if !checkCA(chain.Params.SecureContext) {
     c.JSON(401, gin.H{"status": "unauthorized"})
     return
   }
