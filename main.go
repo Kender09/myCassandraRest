@@ -31,11 +31,12 @@ type CtorMsg struct{
 
 var CqlConfig *gocql.ClusterConfig
 
-func chaincodeInvoke(chain Chaincode) bool {
+func chaincodeInvoke(c *gin.Context, chain Chaincode) {
   session, _ := CqlConfig.CreateSession()
   defer session.Close()
   if len(chain.Params.CtorMsg.Args) != 4 {
-    return false
+    c.JSON(401, gin.H{"status": "Incorrect number of arguments. Expecting 4"})
+    return
   }
 
   from_campany := chain.Params.CtorMsg.Args[1]
@@ -47,15 +48,38 @@ func chaincodeInvoke(chain Chaincode) bool {
 
   if err := session.Query(from_query, money, from_campany).Exec(); err != nil {
     fmt.Println(err)
-    return false
+    c.JSON(401, gin.H{"status": "err", "message": err})
+    return
   }
 
   if err := session.Query(to_query, money, to_campany).Exec(); err != nil {
     fmt.Println(err)
-    return false
+    c.JSON(401, gin.H{"status": "err", "message": err})
+    return
   }
 
-  return true
+  c.JSON(200, gin.H{"status": "OK"})
+}
+
+func chaincodeQuery(c *gin.Context, chain Chaincode) {
+  session, _ := CqlConfig.CreateSession()
+  defer session.Close()
+  if len(chain.Params.CtorMsg.Args) != 2 {
+    c.JSON(401, gin.H{"status": "Incorrect number of arguments. Expecting 2"})
+    return
+  }
+
+  campany := chain.Params.CtorMsg.Args[1]
+  var money string
+
+  query := "SELECT money FROM assets WHERE campany = ?"
+  if err := session.Query(query, campany).Scan(&money); err != nil {
+    fmt.Println(err)
+    c.JSON(401, gin.H{"status": "err", "message": err})
+    return
+  }
+
+  c.JSON(200, gin.H{"status": "OK", "message": money})
 }
 
 func postChaincode (c *gin.Context) {
@@ -65,26 +89,18 @@ func postChaincode (c *gin.Context) {
     return
   }
 
-  var status bool
-
   switch chain.Method {
     case "invoke": {
-      status = chaincodeInvoke(chain)
+      chaincodeInvoke(c, chain)
     }
     case "query": {
+      chaincodeQuery(c, chain)
     }
     case "deploy": {
     }
     default: {
       c.JSON(401, gin.H{"status": "unauthorized"})
-      return
     }
-  }
-
-  if status {
-    c.JSON(200, gin.H{"status": "OK"})
-  } else {
-    c.JSON(401, gin.H{"status": "unauthorized"})
   }
 }
 
