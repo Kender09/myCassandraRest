@@ -42,7 +42,7 @@ func chaincodeDeploy(c *gin.Context, chain Chaincode) {
     money := chain.Params.CtorMsg.Args[i*2 + 1]
     if err := session.Query(query, money, campany).Exec(); err != nil {
       fmt.Println(err)
-      c.JSON(401, gin.H{"status": "err", "message": err})
+      c.JSON(401, gin.H{"status": "err", "message": fmt.Sprint(err)})
       return
     }
   }
@@ -66,13 +66,13 @@ func chaincodeInvoke(c *gin.Context, chain Chaincode) {
 
   if err := session.Query(from_query, money, from_campany).Exec(); err != nil {
     fmt.Println(err)
-    c.JSON(401, gin.H{"status": "err", "message": err})
+    c.JSON(401, gin.H{"status": "err", "message": fmt.Sprint(err)})
     return
   }
 
   if err := session.Query(to_query, money, to_campany).Exec(); err != nil {
     fmt.Println(err)
-    c.JSON(401, gin.H{"status": "err", "message": err})
+    c.JSON(401, gin.H{"status": "err", "message": fmt.Sprint(err)})
     return
   }
 
@@ -93,7 +93,7 @@ func chaincodeQuery(c *gin.Context, chain Chaincode) {
   query := "SELECT money FROM assets WHERE campany = ?"
   if err := session.Query(query, campany).Scan(&money); err != nil {
     fmt.Println(err)
-    c.JSON(401, gin.H{"status": "err", "message": err})
+    c.JSON(401, gin.H{"status": "err", "message": fmt.Sprint(err)})
     return
   }
 
