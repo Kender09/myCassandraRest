@@ -31,6 +31,24 @@ type CtorMsg struct{
 
 var CqlConfig *gocql.ClusterConfig
 
+func chaincodeDeploy(c *gin.Context, chain Chaincode) {
+  session, _ := CqlConfig.CreateSession()
+  defer session.Close()
+
+  query := "UPDATE assets SET money = money + ? WHERE campany = ?"
+  init_args := chain.Params.CtorMsg.Args[1:]
+  for i := 0; i < len(init_args) / 2; i++ {
+    campany := chain.Params.CtorMsg.Args[i*2]
+    money := chain.Params.CtorMsg.Args[i*2 + 1]
+    if err := session.Query(query, money, campany).Exec(); err != nil {
+      fmt.Println(err)
+      c.JSON(401, gin.H{"status": "err", "message": err})
+      return
+    }
+  }
+  c.JSON(200, gin.H{"status": "OK"})
+}
+
 func chaincodeInvoke(c *gin.Context, chain Chaincode) {
   session, _ := CqlConfig.CreateSession()
   defer session.Close()
@@ -97,6 +115,7 @@ func postChaincode (c *gin.Context) {
       chaincodeQuery(c, chain)
     }
     case "deploy": {
+      chaincodeDeploy(c, chain)
     }
     default: {
       c.JSON(401, gin.H{"status": "unauthorized"})
