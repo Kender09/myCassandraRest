@@ -33,6 +33,7 @@ type CtorMsg struct{
 }
 
 var CqlConfig *gocql.ClusterConfig
+var session *gocql.Session
 var CAip = "localhost"
 
 func checkCA (secureContext string) bool {
@@ -47,8 +48,8 @@ func checkCA (secureContext string) bool {
 }
 
 func chaincodeDeploy(c *gin.Context, chain Chaincode) {
-  session, _ := CqlConfig.CreateSession()
-  defer session.Close()
+  //session, _ := CqlConfig.CreateSession()
+  //defer session.Close()
 
   query := "UPDATE assets SET money = money + ? WHERE campany = ?"
   init_args := chain.Params.CtorMsg.Args[1:]
@@ -65,8 +66,8 @@ func chaincodeDeploy(c *gin.Context, chain Chaincode) {
 }
 
 func chaincodeInvoke(c *gin.Context, chain Chaincode) {
-  session, _ := CqlConfig.CreateSession()
-  defer session.Close()
+  //session, _ := CqlConfig.CreateSession()
+  //defer session.Close()
   if len(chain.Params.CtorMsg.Args) != 4 {
     c.JSON(401, gin.H{"status": "Incorrect number of arguments. Expecting 4"})
     return
@@ -95,8 +96,8 @@ func chaincodeInvoke(c *gin.Context, chain Chaincode) {
 }
 
 func chaincodeQuery(c *gin.Context, chain Chaincode) {
-  session, _ := CqlConfig.CreateSession()
-  defer session.Close()
+  //session, _ := CqlConfig.CreateSession()
+  //defer session.Close()
   if len(chain.Params.CtorMsg.Args) != 2 {
     c.JSON(401, gin.H{"status": "Incorrect number of arguments. Expecting 2"})
     return
@@ -149,6 +150,10 @@ func main() {
   CqlConfig.Keyspace = "fabric"
   CqlConfig.Consistency = gocql.Quorum
   CqlConfig.Port = 9042
+  CqlConfig.NumConns = 1000
+  session, _ = CqlConfig.CreateSession()
+  defer session.Close()
+
   r := gin.Default()
 
   r.POST("/chaincode", postChaincode)
